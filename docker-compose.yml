@@ -1,0 +1,21 @@
+services:
+  oferta:
+    build: .
+    env_file:
+      - .env
+    ports:
+      - "8000:8000"
+    volumes:
+      - oferta_data:/app/data
+      - oferta_logs:/app/logs
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+volumes:
+  oferta_data:
+  oferta_logs:
+

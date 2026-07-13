@@ -1,0 +1,47 @@
+[project]
+name = "oferta-telegram"
+version = "0.1.0"
+description = "Monitoramento de ofertas do Mercado Livre com publicacao no Telegram"
+requires-python = ">=3.12"
+dependencies = [
+    "alembic==1.18.5",
+    "apscheduler==3.11.0",
+    "fastapi==0.139.0",
+    "httpx==0.28.1",
+    "playwright==1.61.0",
+    "pydantic==2.13.4",
+    "pydantic-settings==2.14.2",
+    "python-dotenv==1.0.1",
+    "PyYAML==6.0.2",
+    "SQLAlchemy==2.0.51",
+    "tenacity==9.0.0",
+    "uvicorn[standard]==0.34.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "mypy==2.2.0",
+    "pytest==9.1.1",
+    "pytest-asyncio==1.4.0",
+    "respx==0.21.1",
+    "ruff==0.15.21",
+    "types-PyYAML==6.0.12.20241221",
+]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP", "SIM"]
+ignore = ["B008"]
+
+[tool.mypy]
+python_version = "3.12"
+strict = true
+plugins = ["pydantic.mypy"]
+exclude = ["alembic/"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_mode = "auto"

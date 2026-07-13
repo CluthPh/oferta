@@ -1,0 +1,695 @@
+const state = {
+  products: [],
+  nichesConfig: null,
+};
+
+const $ = (selector) => document.querySelector(selector);
+
+function adminKey() {
+  return localStorage.getItem("oferta_admin_key") || "";
+}
+
+function headers(admin = false) {
+  const value = { "Content-Type": "application/json" };
+  if (admin && adminKey()) {
+    value["X-Admin-Key"] = adminKey();
+  }
+  return value;
+}
+
+async function api(path, options = {}, admin = false) {
+  const response = await fetch(path, {
+    credentials: "same-origin",
+    ...options,
+    headers: { ...headers(admin), ...(options.headers || {}) },
+  });
+  if (!response.ok) {
+    let detail = response.statusText;
+    try {
+      const body = await response.json();
+      detail = body.detail || JSON.stringify(body);
+    } catch (_error) {
+      detail = await response.text();
+    }
+    throw new Error(detail);
+  }
+  const contentType = response.headers.get("content-type") || "";
+  return contentType.includes("application/json") ? response.json() : response.text();
+}
+
+function escapeHtml(value) {
+  return String(value ?? "")
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#039;");
+}
+
+function money(value) {
+  if (value === null || value === undefined || value === "") {
+    return "-";
+  }
+  return Number(value).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+}
+
+function dateTime(value) {
+  return value ? new Date(value).toLocaleString("pt-BR") : "-";
+}
+
+function toast(message) {
+  const node = $("#toast");
+  node.textContent = message;
+  node.classList.add("show");
+  window.setTimeout(() => node.classList.remove("show"), 2600);
+}
+
+function table(headersList, rows) {
+  if (!rows.length) {
+    return '<div class="check"><span>Nenhum registro.</span></div>';
+  }
+  return `
+    <table>
+      <thead><tr>${headersList.map((item) => `<th>${escapeHtml(item)}</th>`).join("")}</tr></thead>
+      <tbody>${rows.join("")}</tbody>
+    </table>
+  `;
+}
+
+function pill(text, kind = "") {
+  return `<span class="pill ${kind}">${escapeHtml(text)}</span>`;
+}
+
+async function login() {
+  const key = $("#admin-key").value.trim();
+  await api("/auth/login", { method: "POST", body: JSON.stringify({ admin_key: key }) });
+  localStorage.setItem("oferta_admin_key", key);
+  toast("Login ok");
+  await refreshAll();
+}
+
+async function logout() {
+  await api("/auth/logout", { method: "POST" });
+  localStorage.removeItem("oferta_admin_key");
+  $("#admin-key").value = "";
+  toast("Sessao encerrada");
+}
+
+async function loadDashboard() {
+  const data = await api("/dashboard");
+  const counts = data.counts;
+  $("#status-line").innerHTML = [
+    `<span class="status-chip ${data.settings.dry_run ? "warn" : "ok"}">DRY_RUN ${data.settings.dry_run ? "ativo" : "off"}</span>`,
+    `<span class="status-chip ${data.settings.require_approval ? "ok" : "warn"}">Aprovacao ${data.settings.require_approval ? "manual" : "auto"}</span>`,
+    `<span class="status-chip">Intervalo ${data.settings.scan_interval_minutes} min</span>`,
+    `<span class="status-chip">Fonte ${escapeHtml(data.settings.marketplace_sources)}</span>`,
+  ].join("");
+  $("#cards").innerHTML = [
+    ["Produtos", counts.products],
+    ["Ignorados", counts.ignored_products],
+    ["Aprov. pendentes", counts.pending_approvals],
+    ["Afiliados", counts.affiliate_links],
+    ["Pend. afiliado", counts.pending_affiliate_links],
+    ["Publicacoes", counts.publications],
+    ["Enviadas", counts.sent_publications],
+    ["Falhas", counts.failed_publications],
+    ["Ciclos", counts.scan_runs],
+  ]
+    .map(([label, value]) => `<div class="card"><strong>${value}</strong><span>${label}</span></div>`)
+    .join("");
+  renderScans(data.recent_scans || []);
+  renderEvents(data.recent_events || []);
+  renderRecentApprovals(data.recent_approvals || []);
+}
+
+function renderScans(scans) {
+  $("#scan-runs").innerHTML = table(
+    ["ID", "Inicio", "Fim", "Coletados", "Aprovados", "Publicados", "Erros"],
+    scans.map(
+      (row) => `
+        <tr>
+          <td>${row.id}</td>
+          <td>${dateTime(row.started_at)}</td>
+          <td>${dateTime(row.finished_at)}</td>
+          <td>${row.collected_count}</td>
+          <td>${row.approved_count}</td>
+          <td>${row.published_count}</td>
+          <td>${row.error_count}</td>
+        </tr>
+      `,
+    ),
+  );
+}
+
+function renderEvents(events) {
+  $("#events").innerHTML = table(
+    ["Quando", "Nivel", "Modulo", "Acao", "Mensagem"],
+    events.map(
+      (row) => `
+        <tr>
+          <td>${dateTime(row.created_at)}</td>
+          <td>${pill(row.level, row.level === "ERROR" ? "err" : "ok")}</td>
+          <td>${escapeHtml(row.module)}</td>
+          <td>${escapeHtml(row.action)}</td>
+          <td>${escapeHtml(row.message)}</td>
+        </tr>
+      `,
+    ),
+  );
+}
+
+function renderRecentApprovals(rows) {
+  $("#recent-approvals").innerHTML = table(
+    ["Quando", "Produto", "Nicho", "Score", "Status"],
+    rows.map(
+      (row) => `
+        <tr>
+          <td>${dateTime(row.created_at)}</td>
+          <td>${escapeHtml(row.product_id)}</td>
+          <td>${escapeHtml(row.niche_name)}</td>
+          <td>${row.score}</td>
+          <td>${pill(row.status, row.status === "pending" ? "warn" : "ok")}</td>
+        </tr>
+      `,
+    ),
+  );
+}
+
+async function loadValidation() {
+  const data = await api("/config/validate");
+  $("#validation").innerHTML = data.checks
+    .map((item) => {
+      const kind = item.ok ? "ok" : item.level === "warning" ? "warn" : "err";
+      return `
+        <div class="check">
+          <strong>${pill(item.ok ? "ok" : item.level, kind)} ${escapeHtml(item.name)}</strong>
+          <span>${escapeHtml(item.message)}</span>
+        </div>
+      `;
+    })
+    .join("");
+}
+
+function productQuery() {
+  const params = new URLSearchParams({ limit: "200" });
+  const q = $("#product-filter").value.trim();
+  const status = $("#product-status").value;
+  const shipping = $("#product-shipping").value;
+  const minDiscount = $("#product-min-discount").value;
+  if (q) params.set("q", q);
+  if (status === "active") params.set("ignored", "false");
+  if (status === "ignored") params.set("ignored", "true");
+  if (shipping) params.set("free_shipping", shipping);
+  if (minDiscount) params.set("min_discount", minDiscount);
+  return params.toString();
+}
+
+async function loadProducts() {
+  state.products = await api(`/products?${productQuery()}`);
+  renderProducts();
+}
+
+function renderProducts() {
+  const rows = state.products.map(
+    (row) => `
+      <tr>
+        <td>${escapeHtml(row.product_id)}</td>
+        <td>${escapeHtml(row.title)}</td>
+        <td>${money(row.current_price)}</td>
+        <td>${row.discount_percent ?? "-"}</td>
+        <td>${row.free_shipping ? pill("frete", "ok") : "-"}</td>
+        <td>${row.ignored ? pill("ignorado", "warn") : pill("ativo", "ok")}</td>
+        <td>
+          <button data-preview="${escapeHtml(row.product_id)}">Previa</button>
+          <button data-publish="${escapeHtml(row.product_id)}">Postar</button>
+          <button data-ignore="${escapeHtml(row.product_id)}">Ignorar</button>
+        </td>
+      </tr>
+    `,
+  );
+  $("#products-table").innerHTML = table(
+    ["ID", "Titulo", "Preco", "Desc.", "Frete", "Status", "Acoes"],
+    rows,
+  );
+}
+
+async function previewProduct(productId) {
+  const [data, history] = await Promise.all([
+    api("/offers/preview", { method: "POST", body: JSON.stringify({ product_id: productId }) }, true),
+    api(`/products/${encodeURIComponent(productId)}/price-history`),
+  ]);
+  renderPriceChart(history);
+  const channels = data.channels
+    .map((row) => `${row.chat_id}: ${row.can_post ? "postar" : "bloqueado"} (${row.reason})`)
+    .join("\n");
+  $("#preview-output").textContent = [
+    `Produto: ${data.product_id}`,
+    `Nicho: ${data.niche}`,
+    `Score: ${data.score}`,
+    `Aprovado: ${data.approved}`,
+    `Afiliado: ${data.affiliate_link_found}`,
+    `Link: ${data.link}`,
+    "",
+    channels,
+    "",
+    data.message_html,
+  ].join("\n");
+}
+
+function renderPriceChart(history) {
+  const points = history
+    .map((row) => ({ price: Number(row.price), date: row.collected_at }))
+    .filter((row) => Number.isFinite(row.price));
+  if (points.length < 2) {
+    $("#price-chart").innerHTML = '<span class="pill warn">historico insuficiente</span>';
+    return;
+  }
+  const width = 720;
+  const height = 160;
+  const min = Math.min(...points.map((row) => row.price));
+  const max = Math.max(...points.map((row) => row.price));
+  const range = Math.max(1, max - min);
+  const path = points
+    .map((row, index) => {
+      const x = (index / (points.length - 1)) * width;
+      const y = height - ((row.price - min) / range) * (height - 20) - 10;
+      return `${x.toFixed(1)},${y.toFixed(1)}`;
+    })
+    .join(" ");
+  $("#price-chart").innerHTML = `
+    <svg viewBox="0 0 ${width} ${height}" role="img" aria-label="Historico de preco">
+      <polyline points="${path}" fill="none" stroke="#1d4ed8" stroke-width="4" />
+      <text x="0" y="16" fill="#667085">${money(max)}</text>
+      <text x="0" y="${height - 4}" fill="#667085">${money(min)}</text>
+    </svg>
+  `;
+}
+
+async function publishProduct(productId) {
+  const result = await api(
+    `/products/${encodeURIComponent(productId)}/publish?force=true`,
+    { method: "POST" },
+    true,
+  );
+  toast(`Publicacao: ${result.published}`);
+  await refreshAll();
+}
+
+async function ignoreProduct(productId) {
+  await api(`/products/${encodeURIComponent(productId)}/ignore`, { method: "POST" }, true);
+  toast("Produto ignorado");
+  await loadProducts();
+  await loadDashboard();
+}
+
+async function loadApprovals() {
+  const status = $("#approval-status").value;
+  const path = status ? `/approvals?status=${encodeURIComponent(status)}` : "/approvals";
+  const rows = await api(path, {}, true);
+  $("#approval-table").innerHTML = table(
+    ["ID", "Produto", "Nicho", "Busca", "Score", "Status", "Motivo", "Acoes"],
+    rows.map(
+      (row) => `
+        <tr>
+          <td>${row.id}</td>
+          <td>${escapeHtml(row.product_id)}</td>
+          <td>${escapeHtml(row.niche_name)}</td>
+          <td>${escapeHtml(row.search_query)}</td>
+          <td>${row.score}</td>
+          <td>${pill(row.status, row.status === "pending" ? "warn" : "ok")}</td>
+          <td>${escapeHtml(row.reason)}</td>
+          <td>
+            <button data-approve="${row.id}">Aprovar</button>
+            <button data-publish-approval="${row.id}">Postar</button>
+            <button data-reject="${row.id}">Rejeitar</button>
+          </td>
+        </tr>
+      `,
+    ),
+  );
+}
+
+async function updateApproval(id, action) {
+  await api(`/approvals/${id}/${action}`, { method: "POST", body: JSON.stringify({ note: "" }) }, true);
+  toast("Fila atualizada");
+  await loadApprovals();
+  await loadDashboard();
+}
+
+async function publishApproval(id) {
+  const result = await api(`/approvals/${id}/publish`, { method: "POST" }, true);
+  toast(`Publicacao: ${result.published}`);
+  await loadApprovals();
+  await loadDashboard();
+}
+
+async function loadAffiliates() {
+  const rows = await api("/affiliate-links");
+  $("#affiliate-table").innerHTML = table(
+    ["ID", "Produto", "Afiliado", "Nicho", "Ativo", "Acoes"],
+    rows.map(
+      (row) => `
+        <tr>
+          <td>${row.id}</td>
+          <td>${escapeHtml(row.product_id)}</td>
+          <td>${escapeHtml(row.affiliate_url)}</td>
+          <td>${row.niche_id ?? "-"}</td>
+          <td>${row.active ? pill("sim", "ok") : pill("nao", "warn")}</td>
+          <td><button data-delete-affiliate="${row.id}">Apagar</button></td>
+        </tr>
+      `,
+    ),
+  );
+}
+
+async function loadPending() {
+  const rows = await api("/offers/pending");
+  $("#pending-table").innerHTML = table(
+    ["Produto", "URL", "Nicho", "Acoes"],
+    rows.map(
+      (row) => `
+        <tr>
+          <td>${escapeHtml(row.product_id)}</td>
+          <td>${escapeHtml(row.canonical_url)}</td>
+          <td>${escapeHtml(row.niche)}</td>
+          <td><button data-fill-pending="${escapeHtml(row.product_id)}">Usar</button></td>
+        </tr>
+      `,
+    ),
+  );
+}
+
+async function saveAffiliate(event) {
+  event.preventDefault();
+  const form = new FormData(event.currentTarget);
+  const payload = Object.fromEntries(form.entries());
+  payload.active = form.get("active") === "on";
+  if (payload.niche_id) {
+    payload.niche_id = Number(payload.niche_id);
+  } else {
+    delete payload.niche_id;
+  }
+  await api("/affiliate-links", { method: "POST", body: JSON.stringify(payload) }, true);
+  event.currentTarget.reset();
+  event.currentTarget.elements.marketplace.value = "mercadolivre";
+  event.currentTarget.elements.active.checked = true;
+  toast("Link salvo");
+  await loadAffiliates();
+  await loadDashboard();
+}
+
+async function deleteAffiliate(id) {
+  await api(`/affiliate-links/${id}`, { method: "DELETE" }, true);
+  toast("Link apagado");
+  await loadAffiliates();
+  await loadDashboard();
+}
+
+function fillPending(productId) {
+  api("/offers/pending").then((rows) => {
+    const row = rows.find((item) => item.product_id === productId);
+    if (!row) return;
+    const form = $("#affiliate-form");
+    form.elements.marketplace.value = row.marketplace || "mercadolivre";
+    form.elements.product_id.value = row.product_id || "";
+    form.elements.canonical_url.value = row.canonical_url || "";
+    form.elements.affiliate_url.value = row.affiliate_url || "";
+  });
+}
+
+async function exportAffiliates() {
+  const response = await fetch("/affiliate-links/export", {
+    credentials: "same-origin",
+    headers: headers(true),
+  });
+  if (!response.ok) throw new Error(await response.text());
+  const blob = await response.blob();
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = "affiliate_links.csv";
+  link.click();
+  URL.revokeObjectURL(url);
+}
+
+async function importAffiliates() {
+  await api(
+    "/affiliate-links/import",
+    { method: "POST", body: JSON.stringify({ csv: $("#import-csv").value }) },
+    true,
+  );
+  $("#import-csv").value = "";
+  toast("CSV importado");
+  await loadAffiliates();
+  await loadDashboard();
+}
+
+async function loadConfig() {
+  const data = await api("/config/raw", {}, true);
+  $("#config-editor").value = data.content;
+}
+
+async function saveConfig() {
+  await api(
+    "/config/raw",
+    { method: "PUT", body: JSON.stringify({ content: $("#config-editor").value }) },
+    true,
+  );
+  toast("Configuracao salva");
+  await loadValidation();
+  await loadDashboard();
+}
+
+async function loadNiches() {
+  state.nichesConfig = await api("/config/niches", {}, true);
+  $("#niche-visual").innerHTML = state.nichesConfig.niches
+    .map((niche, index) => {
+      const publication = niche.publication || {};
+      return `
+        <div class="niche-editor" data-niche-index="${index}">
+          <div class="form-grid">
+            <input data-field="name" value="${escapeHtml(niche.name)}" placeholder="nome" />
+            <input data-field="priority" type="number" value="${niche.priority ?? 0}" placeholder="prioridade" />
+            <label class="checkline">
+              <input data-field="enabled" type="checkbox" ${niche.enabled ? "checked" : ""} />
+              ativo
+            </label>
+            <input data-field="chat_ids" value="${escapeHtml((niche.telegram.chat_ids || []).join(","))}" placeholder="@canal,@outro" />
+            <input data-field="header" value="${escapeHtml(niche.telegram.header || "")}" placeholder="header" />
+            <input data-field="max_posts_per_cycle" type="number" value="${publication.max_posts_per_cycle ?? 3}" placeholder="max posts" />
+            <input data-field="seconds_between_posts" type="number" value="${publication.seconds_between_posts ?? 5}" placeholder="segundos" />
+            <input data-field="repost_after_hours" type="number" value="${publication.repost_after_hours ?? 168}" placeholder="repost horas" />
+            <input data-field="min_price_drop_percent" type="number" value="${publication.min_price_drop_percent ?? 3}" placeholder="queda %" />
+          </div>
+        </div>
+      `;
+    })
+    .join("");
+}
+
+async function saveNiches() {
+  if (!state.nichesConfig) {
+    await loadNiches();
+  }
+  document.querySelectorAll(".niche-editor").forEach((node) => {
+    const index = Number(node.dataset.nicheIndex);
+    const niche = state.nichesConfig.niches[index];
+    niche.name = node.querySelector('[data-field="name"]').value.trim();
+    niche.priority = Number(node.querySelector('[data-field="priority"]').value || 0);
+    niche.enabled = node.querySelector('[data-field="enabled"]').checked;
+    niche.telegram.chat_ids = node
+      .querySelector('[data-field="chat_ids"]')
+      .value.split(",")
+      .map((item) => item.trim())
+      .filter(Boolean);
+    niche.telegram.header = node.querySelector('[data-field="header"]').value;
+    niche.publication.max_posts_per_cycle = Number(
+      node.querySelector('[data-field="max_posts_per_cycle"]').value || 3,
+    );
+    niche.publication.seconds_between_posts = Number(
+      node.querySelector('[data-field="seconds_between_posts"]').value || 5,
+    );
+    niche.publication.repost_after_hours = Number(
+      node.querySelector('[data-field="repost_after_hours"]').value || 168,
+    );
+    niche.publication.min_price_drop_percent = Number(
+      node.querySelector('[data-field="min_price_drop_percent"]').value || 3,
+    );
+  });
+  await api("/config/niches", { method: "PUT", body: JSON.stringify(state.nichesConfig) }, true);
+  toast("Nicho salvo");
+  await loadConfig();
+  await loadValidation();
+}
+
+async function loadSettings() {
+  const data = await api("/settings/runtime", {}, true);
+  const form = $("#settings-form");
+  Object.entries(data).forEach(([key, value]) => {
+    const field = form.elements[key];
+    if (!field) return;
+    if (field.type === "checkbox") {
+      field.checked = Boolean(value);
+    } else {
+      field.value = value;
+    }
+  });
+}
+
+async function saveSettings(event) {
+  event.preventDefault();
+  const form = event.currentTarget;
+  const payload = {
+    DRY_RUN: form.elements.DRY_RUN.checked,
+    POST_WITHOUT_AFFILIATE_LINK: form.elements.POST_WITHOUT_AFFILIATE_LINK.checked,
+    RUN_SCAN_ON_STARTUP: form.elements.RUN_SCAN_ON_STARTUP.checked,
+    REQUIRE_APPROVAL: form.elements.REQUIRE_APPROVAL.checked,
+    SCAN_INTERVAL_MINUTES: Number(form.elements.SCAN_INTERVAL_MINUTES.value || 60),
+    MARKETPLACE_SOURCES: form.elements.MARKETPLACE_SOURCES.value || "mercadolivre",
+  };
+  await api("/settings/runtime", { method: "PATCH", body: JSON.stringify(payload) }, true);
+  toast("Ajustes salvos");
+  await Promise.all([loadDashboard(), loadValidation(), loadSources()]);
+}
+
+async function loadSources() {
+  const rows = await api("/sources");
+  $("#sources-table").innerHTML = table(
+    ["Fonte", "Status", "Mensagem"],
+    rows.map(
+      (row) => `
+        <tr>
+          <td>${escapeHtml(row.name)}</td>
+          <td>${row.supported ? pill("ativa", "ok") : pill("pendente", "warn")}</td>
+          <td>${escapeHtml(row.message)}</td>
+        </tr>
+      `,
+    ),
+  );
+}
+
+async function testTelegram(event) {
+  event.preventDefault();
+  const chatId = event.currentTarget.elements.chat_id.value.trim() || null;
+  const result = await api("/telegram/test", {
+    method: "POST",
+    body: JSON.stringify({ chat_id: chatId }),
+  }, true);
+  $("#telegram-test-output").textContent = JSON.stringify(result, null, 2);
+}
+
+async function loadReport() {
+  const report = await api("/reports/daily", {}, true);
+  $("#report-output").innerHTML = `
+    <div class="card"><strong>${report.scans}</strong><span>scans 24h</span></div>
+    <div class="card"><strong>${report.products_collected}</strong><span>produtos 24h</span></div>
+    <div class="card"><strong>${report.publications}</strong><span>publicacoes 24h</span></div>
+    <div class="card"><strong>${report.pending_approvals}</strong><span>aprov. pendentes</span></div>
+    <div class="report-wide table-wrap">
+      ${table(
+        ["Produto", "Titulo", "Preco", "Desc."],
+        report.top_discounts.map(
+          (row) => `
+            <tr>
+              <td>${escapeHtml(row.product_id)}</td>
+              <td>${escapeHtml(row.title)}</td>
+              <td>${money(row.current_price)}</td>
+              <td>${row.discount_percent ?? "-"}</td>
+            </tr>
+          `,
+        ),
+      )}
+    </div>
+  `;
+}
+
+async function loadLogs() {
+  const kind = $("#log-kind").value;
+  const data = await api(`/logs/recent?kind=${encodeURIComponent(kind)}&lines=180`, {}, true);
+  $("#logs-output").textContent = data.lines.join("\n");
+}
+
+async function runScan() {
+  toast("Scan iniciado");
+  const result = await api("/jobs/scan", { method: "POST" }, true);
+  toast(`Scan finalizado: ${result.published} publicacao(oes)`);
+  await refreshAll();
+}
+
+async function refreshAll() {
+  await Promise.all([
+    loadDashboard(),
+    loadValidation(),
+    loadProducts(),
+    loadApprovals().catch(() => undefined),
+    loadAffiliates(),
+    loadPending(),
+    loadSources(),
+  ]);
+}
+
+function bindEvents() {
+  $("#admin-key").value = adminKey();
+  $("#login").addEventListener("click", () => login().catch((error) => toast(error.message)));
+  $("#logout").addEventListener("click", () => logout().catch((error) => toast(error.message)));
+  $("#refresh-all").addEventListener("click", () => refreshAll().catch((error) => toast(error.message)));
+  $("#run-scan").addEventListener("click", () => runScan().catch((error) => toast(error.message)));
+  $("#apply-product-filters").addEventListener("click", () =>
+    loadProducts().catch((error) => toast(error.message)),
+  );
+  $("#product-filter").addEventListener("keydown", (event) => {
+    if (event.key === "Enter") loadProducts().catch((error) => toast(error.message));
+  });
+  $("#load-approvals").addEventListener("click", () =>
+    loadApprovals().catch((error) => toast(error.message)),
+  );
+  $("#affiliate-form").addEventListener("submit", (event) =>
+    saveAffiliate(event).catch((error) => toast(error.message)),
+  );
+  $("#export-affiliates").addEventListener("click", () =>
+    exportAffiliates().catch((error) => toast(error.message)),
+  );
+  $("#import-affiliates").addEventListener("click", () =>
+    importAffiliates().catch((error) => toast(error.message)),
+  );
+  $("#load-config").addEventListener("click", () => loadConfig().catch((error) => toast(error.message)));
+  $("#save-config").addEventListener("click", () => saveConfig().catch((error) => toast(error.message)));
+  $("#load-niches").addEventListener("click", () => loadNiches().catch((error) => toast(error.message)));
+  $("#save-niches").addEventListener("click", () => saveNiches().catch((error) => toast(error.message)));
+  $("#settings-form").addEventListener("submit", (event) =>
+    saveSettings(event).catch((error) => toast(error.message)),
+  );
+  $("#telegram-test-form").addEventListener("submit", (event) =>
+    testTelegram(event).catch((error) => toast(error.message)),
+  );
+  $("#load-report").addEventListener("click", () => loadReport().catch((error) => toast(error.message)));
+  $("#load-logs").addEventListener("click", () => loadLogs().catch((error) => toast(error.message)));
+  document.body.addEventListener("click", (event) => {
+    const target = event.target;
+    if (!(target instanceof HTMLElement)) return;
+    if (target.dataset.preview) previewProduct(target.dataset.preview).catch((error) => toast(error.message));
+    if (target.dataset.publish) publishProduct(target.dataset.publish).catch((error) => toast(error.message));
+    if (target.dataset.ignore) ignoreProduct(target.dataset.ignore).catch((error) => toast(error.message));
+    if (target.dataset.approve) updateApproval(target.dataset.approve, "approve").catch((error) => toast(error.message));
+    if (target.dataset.reject) updateApproval(target.dataset.reject, "reject").catch((error) => toast(error.message));
+    if (target.dataset.publishApproval) publishApproval(target.dataset.publishApproval).catch((error) => toast(error.message));
+    if (target.dataset.deleteAffiliate) deleteAffiliate(target.dataset.deleteAffiliate).catch((error) => toast(error.message));
+    if (target.dataset.fillPending) fillPending(target.dataset.fillPending);
+  });
+  document.querySelectorAll(".tab").forEach((tab) => {
+    tab.addEventListener("click", () => {
+      document.querySelectorAll(".tab").forEach((item) => item.classList.remove("active"));
+      document.querySelectorAll(".panel").forEach((item) => item.classList.remove("active"));
+      tab.classList.add("active");
+      $(`#${tab.dataset.tab}`).classList.add("active");
+      if (tab.dataset.tab === "settings") loadSettings().catch((error) => toast(error.message));
+      if (tab.dataset.tab === "report") loadReport().catch((error) => toast(error.message));
+      if (tab.dataset.tab === "config" && !state.nichesConfig) {
+        loadNiches().catch((error) => toast(error.message));
+      }
+    });
+  });
+}
+
+bindEvents();
+refreshAll().catch((error) => toast(error.message));

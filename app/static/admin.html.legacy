@@ -1,0 +1,209 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Oferta Telegram Admin</title>
+    <link rel="stylesheet" href="/static/admin.css" />
+  </head>
+  <body>
+    <header class="topbar">
+      <div>
+        <h1>Oferta Telegram</h1>
+        <p id="status-line">Carregando...</p>
+      </div>
+      <div class="keybox">
+        <input id="admin-key" type="password" placeholder="ADMIN_API_KEY" autocomplete="off" />
+        <button id="login">Entrar</button>
+        <button id="logout">Sair</button>
+        <button id="refresh-all">Atualizar</button>
+      </div>
+    </header>
+
+    <nav class="tabs" aria-label="Secoes">
+      <button class="tab active" data-tab="dashboard">Dashboard</button>
+      <button class="tab" data-tab="products">Produtos</button>
+      <button class="tab" data-tab="approvals">Aprovacao</button>
+      <button class="tab" data-tab="affiliates">Afiliados</button>
+      <button class="tab" data-tab="config">Config</button>
+      <button class="tab" data-tab="settings">Ajustes</button>
+      <button class="tab" data-tab="report">Relatorio</button>
+      <button class="tab" data-tab="logs">Logs</button>
+    </nav>
+
+    <main>
+      <section id="dashboard" class="panel active">
+        <div id="cards" class="cards"></div>
+        <div class="grid two">
+          <section>
+            <div class="section-head">
+              <h2>Ultimos ciclos</h2>
+              <button id="run-scan">Rodar scan</button>
+            </div>
+            <div id="scan-runs" class="table-wrap"></div>
+          </section>
+          <section>
+            <h2>Validacao</h2>
+            <div id="validation" class="checks"></div>
+          </section>
+        </div>
+        <section>
+          <h2>Eventos recentes</h2>
+          <div id="events" class="table-wrap"></div>
+        </section>
+        <section>
+          <h2>Aprovacoes recentes</h2>
+          <div id="recent-approvals" class="table-wrap"></div>
+        </section>
+      </section>
+
+      <section id="products" class="panel">
+        <div class="section-head">
+          <h2>Produtos</h2>
+          <input id="product-filter" type="search" placeholder="Filtrar por titulo ou ID" />
+          <select id="product-status">
+            <option value="">todos</option>
+            <option value="active">ativos</option>
+            <option value="ignored">ignorados</option>
+          </select>
+          <select id="product-shipping">
+            <option value="">frete</option>
+            <option value="true">gratis</option>
+            <option value="false">nao gratis</option>
+          </select>
+          <input id="product-min-discount" type="number" min="0" placeholder="% min." />
+          <button id="apply-product-filters">Filtrar</button>
+        </div>
+        <div id="products-table" class="table-wrap"></div>
+        <section class="preview">
+          <h2>Previa</h2>
+          <div id="price-chart" class="chartbox"></div>
+          <div id="preview-output" class="preview-box"></div>
+        </section>
+      </section>
+
+      <section id="approvals" class="panel">
+        <div class="section-head">
+          <h2>Fila de aprovacao</h2>
+          <select id="approval-status">
+            <option value="pending">pendentes</option>
+            <option value="approved">aprovadas</option>
+            <option value="rejected">rejeitadas</option>
+            <option value="published">publicadas</option>
+            <option value="">todas</option>
+          </select>
+          <button id="load-approvals">Carregar</button>
+        </div>
+        <div id="approval-table" class="table-wrap"></div>
+      </section>
+
+      <section id="affiliates" class="panel">
+        <div class="grid two">
+          <section>
+            <h2>Links afiliados</h2>
+            <form id="affiliate-form" class="form-grid">
+              <input name="marketplace" placeholder="marketplace" value="mercadolivre" />
+              <input name="product_id" placeholder="product_id" required />
+              <input name="canonical_url" placeholder="canonical_url" required />
+              <input name="affiliate_url" placeholder="affiliate_url" required />
+              <input name="niche_id" placeholder="niche_id opcional" />
+              <label class="checkline">
+                <input name="active" type="checkbox" checked />
+                ativo
+              </label>
+              <button type="submit">Salvar link</button>
+            </form>
+            <div class="section-head compact">
+              <button id="export-affiliates">Exportar CSV</button>
+            </div>
+            <div id="affiliate-table" class="table-wrap"></div>
+          </section>
+          <section>
+            <h2>Pendentes</h2>
+            <div id="pending-table" class="table-wrap"></div>
+            <h2>Importar CSV</h2>
+            <textarea id="import-csv" spellcheck="false"></textarea>
+            <button id="import-affiliates">Importar</button>
+          </section>
+        </div>
+      </section>
+
+      <section id="config" class="panel">
+        <div class="section-head">
+          <h2>Editor visual</h2>
+          <button id="load-niches">Carregar visual</button>
+          <button id="save-niches">Salvar visual</button>
+        </div>
+        <div id="niche-visual" class="visual-editor"></div>
+        <div class="section-head">
+          <h2>niches.yml</h2>
+          <button id="load-config">Carregar</button>
+          <button id="save-config">Salvar</button>
+        </div>
+        <textarea id="config-editor" class="codearea" spellcheck="false"></textarea>
+      </section>
+
+      <section id="settings" class="panel">
+        <div class="grid two">
+          <section>
+            <h2>Execucao</h2>
+            <form id="settings-form" class="form-grid">
+              <label class="checkline">
+                <input name="DRY_RUN" type="checkbox" />
+                DRY_RUN
+              </label>
+              <label class="checkline">
+                <input name="POST_WITHOUT_AFFILIATE_LINK" type="checkbox" />
+                postar sem afiliado
+              </label>
+              <label class="checkline">
+                <input name="RUN_SCAN_ON_STARTUP" type="checkbox" />
+                scan ao iniciar
+              </label>
+              <label class="checkline">
+                <input name="REQUIRE_APPROVAL" type="checkbox" />
+                exigir aprovacao
+              </label>
+              <input name="SCAN_INTERVAL_MINUTES" type="number" min="1" placeholder="intervalo min" />
+              <input name="MARKETPLACE_SOURCES" placeholder="mercadolivre" />
+              <button type="submit">Salvar ajustes</button>
+            </form>
+            <h2>Fontes</h2>
+            <div id="sources-table" class="table-wrap"></div>
+          </section>
+          <section>
+            <h2>Telegram</h2>
+            <form id="telegram-test-form" class="form-grid">
+              <input name="chat_id" placeholder="@canal ou chat_id opcional" />
+              <button type="submit">Testar</button>
+            </form>
+            <pre id="telegram-test-output" class="logbox small"></pre>
+          </section>
+        </div>
+      </section>
+
+      <section id="report" class="panel">
+        <div class="section-head">
+          <h2>Relatorio 24h</h2>
+          <button id="load-report">Carregar</button>
+        </div>
+        <div id="report-output" class="report-grid"></div>
+      </section>
+
+      <section id="logs" class="panel">
+        <div class="section-head">
+          <h2>Logs</h2>
+          <select id="log-kind">
+            <option value="application">application</option>
+            <option value="errors">errors</option>
+          </select>
+          <button id="load-logs">Carregar</button>
+        </div>
+        <pre id="logs-output" class="logbox"></pre>
+      </section>
+    </main>
+
+    <div id="toast" role="status"></div>
+    <script src="/static/admin.js"></script>
+  </body>
+</html>

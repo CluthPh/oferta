@@ -1,0 +1,48 @@
+niches:
+  - name: informatica
+    enabled: true
+    priority: 10
+    telegram:
+      chat_ids:
+        - "@canal_informatica"
+      header: "PROMOCAO DE INFORMATICA"
+      footer:
+        - "Canal: @canal_informatica"
+        - "Compartilhe com seus amigos"
+      button_text: "VER OFERTA"
+      hashtags:
+        - oferta
+        - informatica
+      show_seller: true
+      show_shipping: true
+      show_discount: true
+      show_original_price: true
+      show_warning: true
+      short_caption: false
+    publication:
+      max_posts_per_cycle: 3
+      seconds_between_posts: 5
+      repost_after_hours: 168
+      min_price_drop_percent: 3
+      price_change_mode: repost
+    searches:
+      - query: "ssd nvme 1tb"
+        enabled: true
+        max_results: 20
+        max_price: 700
+        min_discount_percent: 5
+        free_shipping_only: false
+        condition: new
+        include_words:
+          - ssd
+        exclude_words:
+          - defeito
+          - usado
+          - sucata
+        sort: relevance
+    manual_products:
+      - url: "https://produto.mercadolivre.com.br/MLB-0000000000-produto-exemplo-_JM"
+        affiliate_url: "https://produto.mercadolivre.com.br/MLB-0000000000-produto-exemplo-_JM"
+        max_price: 500
+        enabled: false
+

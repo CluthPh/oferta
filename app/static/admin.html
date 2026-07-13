@@ -1,0 +1,652 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Oferta Telegram Admin</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="/static/admin.css" />
+    <script defer src="https://unpkg.com/lucide@0.468.0/dist/umd/lucide.min.js"></script>
+    <script defer src="/static/admin.js"></script>
+  </head>
+  <body data-theme="dark">
+    <div class="app">
+      <aside id="sidebar" class="sidebar" aria-label="Navegacao principal">
+        <div class="brand">
+          <div class="brand-mark" aria-hidden="true"><i data-lucide="send"></i></div>
+          <div class="brand-text">
+            <strong>Oferta Telegram</strong>
+            <span>Automation SaaS</span>
+          </div>
+        </div>
+
+        <div class="env-chip">
+          <span class="dot ok"></span>
+          <span id="env-label">development</span>
+        </div>
+
+        <nav class="nav">
+          <p>Operacao</p>
+          <button class="nav-item active" data-page="dashboard">
+            <i data-lucide="layout-dashboard"></i><span>Visao geral</span>
+          </button>
+          <button class="nav-item" data-page="products">
+            <i data-lucide="package-search"></i><span>Produtos</span>
+          </button>
+          <button class="nav-item" data-page="approvals">
+            <i data-lucide="badge-check"></i><span>Aprovacao</span>
+          </button>
+          <button class="nav-item" data-page="publications">
+            <i data-lucide="radio"></i><span>Publicacoes</span>
+          </button>
+
+          <p>Monetizacao</p>
+          <button class="nav-item" data-page="affiliates">
+            <i data-lucide="link-2"></i><span>Afiliados</span>
+          </button>
+
+          <p>Sistema</p>
+          <button class="nav-item" data-page="sources">
+            <i data-lucide="satellite-dish"></i><span>Fontes</span>
+          </button>
+          <button class="nav-item" data-page="config">
+            <i data-lucide="sliders-horizontal"></i><span>Configuracoes</span>
+          </button>
+          <button class="nav-item" data-page="settings">
+            <i data-lucide="settings-2"></i><span>Ajustes</span>
+          </button>
+          <button class="nav-item" data-page="reports">
+            <i data-lucide="chart-no-axes-combined"></i><span>Relatorios</span>
+          </button>
+          <button class="nav-item" data-page="logs">
+            <i data-lucide="scroll-text"></i><span>Logs</span>
+          </button>
+        </nav>
+
+        <div class="sidebar-footer">
+          <div class="system-card">
+            <span id="sidebar-system-dot" class="dot warn"></span>
+            <div>
+              <strong id="sidebar-system-status">Verificando</strong>
+              <span>v0.1.0</span>
+            </div>
+          </div>
+          <button id="collapse-sidebar" class="icon-button" aria-label="Recolher sidebar">
+            <i data-lucide="panel-left-close"></i>
+          </button>
+        </div>
+      </aside>
+
+      <div id="mobile-scrim" class="mobile-scrim"></div>
+
+      <div class="workspace">
+        <header class="topbar">
+          <div class="topbar-title">
+            <button id="open-sidebar" class="icon-button mobile-only" aria-label="Abrir menu">
+              <i data-lucide="menu"></i>
+            </button>
+            <div>
+              <div id="breadcrumb" class="breadcrumb">Oferta Telegram / Visao geral</div>
+              <h1 id="page-title">Visao geral</h1>
+            </div>
+          </div>
+
+          <div class="topbar-actions">
+            <span id="last-updated" class="muted-chip">Sem atualizacao</span>
+            <button id="refresh-all" class="button secondary">
+              <i data-lucide="refresh-cw"></i><span>Atualizar dados</span>
+            </button>
+            <button class="icon-button" aria-label="Notificacoes">
+              <i data-lucide="bell"></i>
+              <span id="notification-dot" class="notification-dot hidden"></span>
+            </button>
+            <span id="top-system-status" class="status-badge neutral">
+              <span class="dot warn"></span>Verificando
+            </span>
+            <div class="admin-menu">
+              <button id="admin-menu-button" class="button ghost">
+                <i data-lucide="shield-check"></i><span id="admin-label">Admin</span>
+              </button>
+              <div id="admin-dropdown" class="dropdown">
+                <button id="open-login"><i data-lucide="log-in"></i>Entrar</button>
+                <button id="logout"><i data-lucide="log-out"></i>Sair</button>
+              </div>
+            </div>
+          </div>
+        </header>
+
+        <main>
+          <section id="dashboard" class="page active" data-title="Visao geral">
+            <div class="page-head">
+              <div>
+                <h2>Visao geral</h2>
+                <p>Acompanhe a coleta, aprovacao e publicacao das ofertas em tempo real.</p>
+              </div>
+              <div class="page-actions">
+                <select id="dashboard-period" aria-label="Periodo">
+                  <option value="24">24 horas</option>
+                  <option value="7">7 dias</option>
+                  <option value="30">30 dias</option>
+                </select>
+                <button id="run-scan" class="button primary">
+                  <i data-lucide="play"></i><span>Executar coleta</span>
+                </button>
+                <button id="dashboard-refresh" class="button secondary">
+                  <i data-lucide="refresh-cw"></i><span>Atualizar</span>
+                </button>
+              </div>
+            </div>
+
+            <div id="cards" class="metric-grid"></div>
+
+            <div class="dashboard-grid">
+              <section class="panel-span">
+                <div class="section-head">
+                  <div>
+                    <h3>Fluxo operacional</h3>
+                    <p>Pipeline atual da coleta ate o envio ao Telegram.</p>
+                  </div>
+                </div>
+                <div id="pipeline" class="pipeline"></div>
+              </section>
+
+              <section id="automation-card" class="panel"></section>
+            </div>
+
+            <div class="dashboard-grid">
+              <section class="panel wide">
+                <div class="section-head">
+                  <div>
+                    <h3>Ultimos ciclos</h3>
+                    <p>Execucoes recentes do coletor.</p>
+                  </div>
+                  <div class="inline-controls">
+                    <input id="scan-search" type="search" placeholder="Buscar ciclo" />
+                    <select id="scan-status-filter" aria-label="Status do ciclo">
+                      <option value="">Todos</option>
+                      <option value="completed">Concluido</option>
+                      <option value="warning">Com alertas</option>
+                      <option value="failed">Falhou</option>
+                      <option value="running">Executando</option>
+                    </select>
+                  </div>
+                </div>
+                <div id="scan-runs" class="table-wrap"></div>
+              </section>
+
+              <section class="panel">
+                <div class="section-head">
+                  <div>
+                    <h3>Saude do sistema</h3>
+                    <p>Validacao dos componentes essenciais.</p>
+                  </div>
+                  <button id="run-diagnostics" class="button secondary">
+                    <i data-lucide="activity"></i><span>Executar diagnostico</span>
+                  </button>
+                </div>
+                <div id="validation" class="health-list"></div>
+              </section>
+            </div>
+
+            <div class="dashboard-grid">
+              <section class="panel">
+                <div class="section-head">
+                  <div>
+                    <h3>Eventos recentes</h3>
+                    <p>Atividades registradas pela aplicacao.</p>
+                  </div>
+                </div>
+                <div id="events" class="table-wrap compact-table"></div>
+              </section>
+              <section class="panel">
+                <div class="section-head">
+                  <div>
+                    <h3>Aprovacoes recentes</h3>
+                    <p>Itens enviados para revisao.</p>
+                  </div>
+                </div>
+                <div id="recent-approvals" class="table-wrap compact-table"></div>
+              </section>
+            </div>
+          </section>
+
+          <section id="products" class="page" data-title="Produtos">
+            <div class="page-head">
+              <div>
+                <h2>Produtos</h2>
+                <p>Itens coletados, precos, descontos e acoes de publicacao.</p>
+              </div>
+              <button id="reload-products" class="button secondary">
+                <i data-lucide="refresh-cw"></i><span>Atualizar</span>
+              </button>
+            </div>
+
+            <div class="filter-bar">
+              <label>Busca<input id="product-filter" type="search" placeholder="Titulo ou ID" /></label>
+              <label>Status
+                <select id="product-status">
+                  <option value="">Todos</option>
+                  <option value="active">Ativos</option>
+                  <option value="ignored">Ignorados</option>
+                </select>
+              </label>
+              <label>Marketplace<input id="product-marketplace" placeholder="mercadolivre" /></label>
+              <label>Frete
+                <select id="product-shipping">
+                  <option value="">Todos</option>
+                  <option value="true">Gratis</option>
+                  <option value="false">Pago</option>
+                </select>
+              </label>
+              <label>Preco min.<input id="product-min-price" type="number" min="0" /></label>
+              <label>Preco max.<input id="product-max-price" type="number" min="0" /></label>
+              <label>Desc. min.<input id="product-min-discount" type="number" min="0" /></label>
+              <label>Desde<input id="product-date-from" type="date" /></label>
+              <label>Ordenar
+                <select id="product-sort">
+                  <option value="collected_desc">Mais recentes</option>
+                  <option value="discount_desc">Maior desconto</option>
+                  <option value="price_asc">Menor preco</option>
+                  <option value="price_desc">Maior preco</option>
+                </select>
+              </label>
+              <button id="apply-product-filters" class="button primary">
+                <i data-lucide="filter"></i><span>Filtrar</span>
+              </button>
+            </div>
+
+            <div id="products-table" class="table-wrap"></div>
+
+            <section class="panel preview-panel">
+              <div class="section-head">
+                <div>
+                  <h3>Previa do anuncio</h3>
+                  <p>Mensagem e historico de preco do produto selecionado.</p>
+                </div>
+              </div>
+              <div id="price-chart" class="chartbox"></div>
+              <pre id="preview-output" class="preview-box"></pre>
+            </section>
+          </section>
+
+          <section id="approvals" class="page" data-title="Aprovacao">
+            <div class="page-head">
+              <div>
+                <h2>Fila de aprovacao</h2>
+                <p>Revise produtos antes de gerar publicacoes.</p>
+              </div>
+              <button id="load-approvals" class="button secondary">
+                <i data-lucide="refresh-cw"></i><span>Carregar</span>
+              </button>
+            </div>
+
+            <div class="filter-bar approval-toolbar">
+              <label>Status
+                <select id="approval-status">
+                  <option value="pending">Pendentes</option>
+                  <option value="approved">Aprovadas</option>
+                  <option value="rejected">Rejeitadas</option>
+                  <option value="published">Publicadas</option>
+                  <option value="">Todas</option>
+                </select>
+              </label>
+              <label>Busca<input id="approval-search" type="search" placeholder="Produto, nicho ou motivo" /></label>
+              <button id="batch-approve" class="button secondary">
+                <i data-lucide="check-check"></i><span>Aprovar selecionados</span>
+              </button>
+              <button id="batch-reject" class="button danger">
+                <i data-lucide="x"></i><span>Rejeitar selecionados</span>
+              </button>
+              <button id="batch-publish" class="button primary">
+                <i data-lucide="send"></i><span>Publicar selecionados</span>
+              </button>
+            </div>
+
+            <div id="approval-table" class="review-list"></div>
+          </section>
+
+          <section id="affiliates" class="page" data-title="Afiliados">
+            <div class="page-head">
+              <div>
+                <h2>Afiliados</h2>
+                <p>Links cadastrados, pendencias e importacao CSV.</p>
+              </div>
+              <button id="export-affiliates" class="button secondary">
+                <i data-lucide="download"></i><span>Exportar CSV</span>
+              </button>
+            </div>
+
+            <div id="affiliate-summary" class="metric-grid tight"></div>
+
+            <div class="dashboard-grid">
+              <section class="panel">
+                <div class="section-head">
+                  <div>
+                    <h3>Novo link</h3>
+                    <p>Cadastro manual de URL afiliada.</p>
+                  </div>
+                </div>
+                <form id="affiliate-form" class="form-grid">
+                  <label>Marketplace<input name="marketplace" value="mercadolivre" /></label>
+                  <label>Produto<input name="product_id" required /></label>
+                  <label>URL original<input name="canonical_url" required /></label>
+                  <label>URL afiliada<input name="affiliate_url" required /></label>
+                  <label>Nicho<input name="niche_id" type="number" min="1" /></label>
+                  <label class="switch-line"><input name="active" type="checkbox" checked /><span>Ativo</span></label>
+                  <button type="submit" class="button primary">
+                    <i data-lucide="save"></i><span>Salvar link</span>
+                  </button>
+                </form>
+              </section>
+
+              <section class="panel">
+                <div class="section-head">
+                  <div>
+                    <h3>Importar CSV</h3>
+                    <p>Use o formato exportado pelo painel.</p>
+                  </div>
+                  <button id="import-affiliates" class="button secondary">
+                    <i data-lucide="upload"></i><span>Importar</span>
+                  </button>
+                </div>
+                <textarea id="import-csv" class="codearea small" spellcheck="false"></textarea>
+              </section>
+            </div>
+
+            <div class="dashboard-grid">
+              <section class="panel wide">
+                <div class="section-head">
+                  <div>
+                    <h3>Links afiliados</h3>
+                    <p>Valores sensiveis aparecem mascarados.</p>
+                  </div>
+                </div>
+                <div id="affiliate-table" class="table-wrap"></div>
+              </section>
+              <section class="panel">
+                <div class="section-head">
+                  <div>
+                    <h3>Pendentes</h3>
+                    <p>Produtos sem link resolvido.</p>
+                  </div>
+                </div>
+                <div id="pending-table" class="table-wrap compact-table"></div>
+              </section>
+            </div>
+          </section>
+
+          <section id="publications" class="page" data-title="Publicacoes">
+            <div class="page-head">
+              <div>
+                <h2>Publicacoes</h2>
+                <p>Historico de envios e dry runs.</p>
+              </div>
+              <button id="load-publications" class="button secondary">
+                <i data-lucide="refresh-cw"></i><span>Atualizar</span>
+              </button>
+            </div>
+
+            <div class="filter-bar">
+              <label>Canal<input id="publication-channel" placeholder="@canal ou ID" /></label>
+              <label>Status<input id="publication-status" placeholder="sent, failed, dry_run" /></label>
+              <label>Marketplace<input id="publication-marketplace" placeholder="mercadolivre" /></label>
+              <label>Nicho<input id="publication-niche" placeholder="Quando disponivel" /></label>
+              <label>Produto<input id="publication-product" placeholder="ID do produto" /></label>
+              <label>Desde<input id="publication-date-from" type="date" /></label>
+              <button id="apply-publication-filters" class="button primary">
+                <i data-lucide="filter"></i><span>Filtrar</span>
+              </button>
+            </div>
+
+            <div id="publications-table" class="table-wrap"></div>
+          </section>
+
+          <section id="sources" class="page" data-title="Fontes">
+            <div class="page-head">
+              <div>
+                <h2>Fontes</h2>
+                <p>Status dos provedores de marketplace e coleta.</p>
+              </div>
+              <button id="load-sources" class="button secondary">
+                <i data-lucide="refresh-cw"></i><span>Validar fontes</span>
+              </button>
+            </div>
+            <div id="sources-table" class="source-grid"></div>
+          </section>
+
+          <section id="config" class="page" data-title="Configuracoes">
+            <div class="page-head">
+              <div>
+                <h2>Configuracoes</h2>
+                <p>Nichos, canais e regras de publicacao.</p>
+              </div>
+              <div class="page-actions">
+                <button id="load-niches" class="button secondary">
+                  <i data-lucide="refresh-cw"></i><span>Carregar visual</span>
+                </button>
+                <button id="save-niches" class="button primary">
+                  <i data-lucide="save"></i><span>Salvar visual</span>
+                </button>
+              </div>
+            </div>
+
+            <div class="tabs" role="tablist" aria-label="Configuracoes">
+              <button class="subtab active" data-subtab="config-general">Geral</button>
+              <button class="subtab" data-subtab="config-automation">Automacao</button>
+              <button class="subtab" data-subtab="config-telegram">Telegram</button>
+              <button class="subtab" data-subtab="config-marketplaces">Marketplaces</button>
+              <button class="subtab" data-subtab="config-affiliates">Afiliados</button>
+              <button class="subtab" data-subtab="config-niches">Nichos</button>
+              <button class="subtab" data-subtab="config-security">Seguranca</button>
+              <button class="subtab" data-subtab="config-storage">Armazenamento</button>
+              <button class="subtab" data-subtab="config-logs">Logs</button>
+            </div>
+
+            <div id="config-general" class="subpanel active">
+              <div id="config-summary" class="settings-grid"></div>
+            </div>
+            <div id="config-automation" class="subpanel">
+              <div id="automation-settings-view" class="settings-grid"></div>
+            </div>
+            <div id="config-telegram" class="subpanel">
+              <section class="panel">
+                <div class="section-head">
+                  <div>
+                    <h3>Teste do Telegram</h3>
+                    <p>Usa o endpoint de diagnostico existente.</p>
+                  </div>
+                </div>
+                <form id="telegram-test-form" class="form-grid slim">
+                  <label>Chat ID<input name="chat_id" placeholder="@canal ou chat_id opcional" /></label>
+                  <button type="submit" class="button primary">
+                    <i data-lucide="send"></i><span>Testar</span>
+                  </button>
+                </form>
+                <pre id="telegram-test-output" class="logbox small"></pre>
+              </section>
+            </div>
+            <div id="config-marketplaces" class="subpanel">
+              <div id="config-sources-table" class="source-grid"></div>
+            </div>
+            <div id="config-affiliates" class="subpanel">
+              <div id="config-affiliate-view" class="settings-grid"></div>
+            </div>
+            <div id="config-niches" class="subpanel">
+              <div id="niche-visual" class="visual-editor"></div>
+            </div>
+            <div id="config-security" class="subpanel">
+              <div id="security-view" class="settings-grid"></div>
+            </div>
+            <div id="config-storage" class="subpanel">
+              <div id="storage-view" class="settings-grid"></div>
+            </div>
+            <div id="config-logs" class="subpanel">
+              <div id="logs-settings-view" class="settings-grid"></div>
+            </div>
+
+            <section class="panel raw-config">
+              <div class="section-head">
+                <div>
+                  <h3>niches.yml</h3>
+                  <p>Editor bruto com validacao no backend.</p>
+                </div>
+                <div class="page-actions">
+                  <button id="load-config" class="button secondary">
+                    <i data-lucide="file-down"></i><span>Carregar</span>
+                  </button>
+                  <button id="save-config" class="button primary">
+                    <i data-lucide="save"></i><span>Salvar</span>
+                  </button>
+                </div>
+              </div>
+              <textarea id="config-editor" class="codearea" spellcheck="false"></textarea>
+            </section>
+          </section>
+
+          <section id="settings" class="page" data-title="Ajustes">
+            <div class="page-head">
+              <div>
+                <h2>Ajustes</h2>
+                <p>Configuracoes de execucao editaveis em tempo de uso.</p>
+              </div>
+              <button id="load-settings" class="button secondary">
+                <i data-lucide="refresh-cw"></i><span>Recarregar</span>
+              </button>
+            </div>
+
+            <div class="settings-layout">
+              <form id="settings-form" class="panel form-grid settings-form">
+                <label class="switch-line"><input name="DRY_RUN" type="checkbox" /><span>Modo de teste</span></label>
+                <label class="switch-line"><input name="POST_WITHOUT_AFFILIATE_LINK" type="checkbox" /><span>Postar sem afiliado</span></label>
+                <label class="switch-line"><input name="RUN_SCAN_ON_STARTUP" type="checkbox" /><span>Scan ao iniciar</span></label>
+                <label class="switch-line"><input name="REQUIRE_APPROVAL" type="checkbox" /><span>Exigir aprovacao</span></label>
+                <label>Intervalo entre ciclos<input name="SCAN_INTERVAL_MINUTES" type="number" min="1" /></label>
+                <label>Fontes<input name="MARKETPLACE_SOURCES" /></label>
+                <button type="submit" class="button primary">
+                  <i data-lucide="save"></i><span>Salvar ajustes</span>
+                </button>
+              </form>
+              <section class="panel">
+                <div class="section-head">
+                  <div>
+                    <h3>Alteracoes</h3>
+                    <p id="settings-dirty-state">Nenhuma alteracao pendente.</p>
+                  </div>
+                </div>
+                <div id="runtime-settings-view" class="settings-grid"></div>
+              </section>
+            </div>
+          </section>
+
+          <section id="reports" class="page" data-title="Relatorios">
+            <div class="page-head">
+              <div>
+                <h2>Relatorios</h2>
+                <p>Indicadores e rankings com dados existentes.</p>
+              </div>
+              <button id="load-report" class="button secondary">
+                <i data-lucide="refresh-cw"></i><span>Carregar</span>
+              </button>
+            </div>
+            <div id="report-output" class="report-grid"></div>
+          </section>
+
+          <section id="logs" class="page" data-title="Logs">
+            <div class="page-head">
+              <div>
+                <h2>Logs</h2>
+                <p>Eventos recentes do arquivo de log.</p>
+              </div>
+              <button id="load-logs" class="button secondary">
+                <i data-lucide="refresh-cw"></i><span>Carregar</span>
+              </button>
+            </div>
+
+            <div class="filter-bar">
+              <label>Arquivo
+                <select id="log-kind">
+                  <option value="application">application</option>
+                  <option value="errors">errors</option>
+                </select>
+              </label>
+              <label>Nivel
+                <select id="log-level">
+                  <option value="">Todos</option>
+                  <option value="DEBUG">DEBUG</option>
+                  <option value="INFO">INFO</option>
+                  <option value="WARNING">WARNING</option>
+                  <option value="ERROR">ERROR</option>
+                  <option value="CRITICAL">CRITICAL</option>
+                </select>
+              </label>
+              <label>Busca<input id="log-search" type="search" placeholder="Servico ou mensagem" /></label>
+              <label class="switch-line"><input id="log-autorefresh" type="checkbox" /><span>Auto</span></label>
+              <button id="clear-log-filters" class="button secondary">
+                <i data-lucide="eraser"></i><span>Limpar filtros</span>
+              </button>
+            </div>
+            <div id="logs-output" class="log-view"></div>
+          </section>
+        </main>
+      </div>
+    </div>
+
+    <div id="login-modal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="login-title">
+      <div class="modal-card">
+        <div class="modal-head">
+          <div>
+            <h2 id="login-title">Acesso administrativo</h2>
+            <p>Informe a chave para liberar acoes protegidas.</p>
+          </div>
+          <button id="close-login" class="icon-button" aria-label="Fechar">
+            <i data-lucide="x"></i>
+          </button>
+        </div>
+        <form id="login-form" class="form-grid slim">
+          <label>Chave administrativa
+            <input id="admin-key" type="password" autocomplete="current-password" required />
+          </label>
+          <p id="login-error" class="field-error" role="alert"></p>
+          <button type="submit" id="login" class="button primary">
+            <i data-lucide="log-in"></i><span>Entrar</span>
+          </button>
+        </form>
+      </div>
+    </div>
+
+    <div id="confirm-modal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="confirm-title">
+      <div class="modal-card narrow">
+        <div class="modal-head">
+          <div>
+            <h2 id="confirm-title">Confirmar acao</h2>
+            <p id="confirm-message"></p>
+          </div>
+        </div>
+        <div class="confirm-actions">
+          <button id="confirm-cancel" class="button secondary">Cancelar</button>
+          <button id="confirm-ok" class="button danger">Confirmar</button>
+        </div>
+      </div>
+    </div>
+
+    <aside id="detail-drawer" class="drawer" aria-label="Detalhes">
+      <div class="drawer-head">
+        <div>
+          <span id="drawer-eyebrow" class="muted-chip">Detalhes</span>
+          <h2 id="drawer-title">Detalhes</h2>
+        </div>
+        <button id="close-drawer" class="icon-button" aria-label="Fechar detalhes">
+          <i data-lucide="x"></i>
+        </button>
+      </div>
+      <div id="drawer-body" class="drawer-body"></div>
+    </aside>
+
+    <div id="toast-region" class="toast-region" role="status" aria-live="polite"></div>
+  </body>
+</html>
